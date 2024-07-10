@@ -3,8 +3,7 @@ import { Environment } from "@react-three/drei"
 
 import './index.css'
 
-import Experience from "./Experience"
-
+import RaymarchingScene from "./RaymarchingScene.jsx"
 
 export default function App() {
 
@@ -17,7 +16,7 @@ export default function App() {
         <color 
           attach="background" 
           args={["#eeeeee"]} />
-      <Experience />
+      <RaymarchingScene />
     </Canvas>
   
   );
