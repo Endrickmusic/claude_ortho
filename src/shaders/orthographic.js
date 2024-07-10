@@ -32,8 +32,8 @@ float sdSphere(vec3 p, float r) {
 }
 
 float sceneSDF(vec3 p) {
-    float sphere1 = sdSphere(p - vec3(sin(uTime) * 0.5, 0.0, 0.0), 0.5);
-    float sphere2 = sdSphere(p - vec3(-sin(uTime) * 0.5, 0.0, 0.0), 0.5);
+    float sphere1 = sdSphere(p - vec3(sin(uTime) * 1.5, 0.0, 0.0), 0.5);
+    float sphere2 = sdSphere(p - vec3(-sin(uTime) * 1.5, 0.0, 0.0), 0.5);
     return smin(sphere1, sphere2, 0.5);
 }
 
@@ -70,6 +70,7 @@ void main() {
         sceneSDF(p + vec3(0, 0, 0.001)) - sceneSDF(p - vec3(0, 0, 0.001))
     ));
     vec3 color = normal * 0.5 + 0.5;
+    // color = vec3(ndc, 0.0);
 
     gl_FragColor = vec4(color, 1.0);
 }

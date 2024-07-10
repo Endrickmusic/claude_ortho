@@ -26,7 +26,7 @@ export default function RaymarchingScene() {
 
   return (
     <mesh ref={meshRef}>
-      <planeGeometry args={[2, 2]} />
+      <boxGeometry args={[3, 3, 3]} />
       <shaderMaterial
         ref={materialRef}
         vertexShader={vertexShader}

@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber"
-import { Environment } from "@react-three/drei"
+import { Environment, OrbitControls } from "@react-three/drei"
 
 import './index.css'
 
@@ -10,7 +10,9 @@ export default function App() {
  return (
 
   
+    // <Canvas orthographic shadows camera={{ position: [0, 0, 4], zoom: 300 }}>
     <Canvas shadows camera={{ position: [0, 0, 4], fov: 40 }}>
+      <OrbitControls />
       <Environment
         files="./textures/envmap.hdr" />
         <color 
