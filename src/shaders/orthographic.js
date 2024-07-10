@@ -2,12 +2,10 @@
 
 export const vertexShader = `
 
-varying vec4 vWorldPosition;
-varying mat4 vInverseModelMatrix;
+varying vec2 vUv;
 
 void main() {
-    vWorldPosition = modelMatrix * vec4(position, 1.0);
-    vInverseModelMatrix = inverse(modelMatrix);
+    vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `
@@ -15,12 +13,12 @@ void main() {
 export const fragmentShader = `
 
 uniform vec3 uCameraPosition;
-uniform mat4 uViewProjectionMatrix;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
 uniform vec2 uResolution;
 uniform float uTime;
 
-varying vec4 vWorldPosition;
-varying mat4 vInverseModelMatrix;
+varying vec2 vUv;
 
 float smin(float a, float b, float k) {
     float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
@@ -32,25 +30,28 @@ float sdSphere(vec3 p, float r) {
 }
 
 float sceneSDF(vec3 p) {
-    float sphere1 = sdSphere(p - vec3(sin(uTime) * 1.5, 0.0, 0.0), 0.5);
-    float sphere2 = sdSphere(p - vec3(-sin(uTime) * 1.5, 0.0, 0.0), 0.5);
+    float sphere1 = sdSphere(p - vec3(sin(uTime) * 0.5, 0.0, 0.0), 0.5);
+    float sphere2 = sdSphere(p - vec3(-sin(uTime) * 0.5, 0.0, 0.0), 0.5);
     return smin(sphere1, sphere2, 0.5);
 }
 
 void main() {
     // Calculate NDC coordinates
-    vec2 ndc = (gl_FragCoord.xy / uResolution) * 2.0 - 1.0;
+    vec2 ndc = vUv * 2.0 - 1.0;
     
-    // Calculate world space position on the near plane
-    vec4 nearPlaneWorld = inverse(uViewProjectionMatrix) * vec4(ndc, -1.0, 1.0);
-    nearPlaneWorld /= nearPlaneWorld.w;
+    // Calculate ray origin in view space
+    vec3 rayOrigin = (inverse(uProjectionMatrix) * vec4(ndc, -1.0, 1.0)).xyz;
     
-    // Transform camera position and near plane position to object space
-    vec3 rayOrigin = (vInverseModelMatrix * vec4(uCameraPosition, 1.0)).xyz;
-    vec3 rayTarget = (vInverseModelMatrix * nearPlaneWorld).xyz;
+    // Transform ray origin to world space
+    rayOrigin = (inverse(uModelViewMatrix) * vec4(rayOrigin, 1.0)).xyz;
     
-    // Calculate ray direction in object space
-    vec3 rayDirection = normalize(rayTarget - rayOrigin);
+    // Ray direction in world space (for orthographic, this is constant)
+    vec3 rayDirection = normalize((inverse(uModelViewMatrix) * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+
+    // Transform ray origin and direction to object space
+    mat4 inverseModelMatrix = inverse(uModelViewMatrix) * inverse(uProjectionMatrix);
+    rayOrigin = (inverseModelMatrix * vec4(ndc, -1.0, 1.0)).xyz;
+    rayDirection = normalize((inverseModelMatrix * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
 
     // Raymarching
     float t = 0.0;
@@ -70,8 +71,8 @@ void main() {
         sceneSDF(p + vec3(0, 0, 0.001)) - sceneSDF(p - vec3(0, 0, 0.001))
     ));
     vec3 color = normal * 0.5 + 0.5;
-    // color = vec3(ndc, 0.0);
 
     gl_FragColor = vec4(color, 1.0);
+    // gl_FragColor = vec4(ndc, 0.0, 1.0);
 }
 `
