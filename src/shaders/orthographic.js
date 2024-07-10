@@ -20,59 +20,47 @@ uniform float uTime;
 
 varying vec2 vUv;
 
-float smin(float a, float b, float k) {
-    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-    return mix(b, a, h) - k * h * (1.0 - h);
+mat3 rotateY(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    return mat3(
+        c, 0, -s,
+        0, 1, 0,
+        s, 0, c
+    );
 }
 
-float sdSphere(vec3 p, float r) {
-    return length(p) - r;
+float sdBox(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
-float sceneSDF(vec3 p) {
-    float sphere1 = sdSphere(p - vec3(sin(uTime) * 0.5, 0.0, 0.0), 0.5);
-    float sphere2 = sdSphere(p - vec3(-sin(uTime) * 0.5, 0.0, 0.0), 0.5);
-    return smin(sphere1, sphere2, 0.5);
+float sdf(vec3 p) {
+    p = rotateY(uTime) * p; // Rotate the space around Y-axis
+    return sdBox(p, vec3(0.1)); // Cube with side length 2
 }
 
 void main() {
-    // Calculate NDC coordinates
-    vec2 ndc = vUv * 2.0 - 1.0;
-    
-    // Calculate ray origin in view space
-    vec3 rayOrigin = (inverse(uProjectionMatrix) * vec4(ndc, -1.0, 1.0)).xyz;
-    
-    // Transform ray origin to world space
-    rayOrigin = (inverse(uModelViewMatrix) * vec4(rayOrigin, 1.0)).xyz;
-    
-    // Ray direction in world space (for orthographic, this is constant)
-    vec3 rayDirection = normalize((inverse(uModelViewMatrix) * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+    vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / uResolution.y;
+		vec3 forward = - vec3(0.0, 0.0, 1.0);
+		vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+		vec3 up = cross(forward, right);
 
-    // Transform ray origin and direction to object space
-    mat4 inverseModelMatrix = inverse(uModelViewMatrix) * inverse(uProjectionMatrix);
-    rayOrigin = (inverseModelMatrix * vec4(ndc, -1.0, 1.0)).xyz;
-    rayDirection = normalize((inverseModelMatrix * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
-
-    // Raymarching
+		// // Compute the ray origin based on the orthographic projection
+		vec3 ro = vec3(0.0, 0.0, 5.0) + uv.x * right + uv.y * up;
+		// // The ray direction is constant and points towards the target
+		vec3 rd = forward;
+    
     float t = 0.0;
     for(int i = 0; i < 100; i++) {
-        vec3 p = rayOrigin + t * rayDirection;
-        float d = sceneSDF(p);
-        if(d < 0.001) break;
+        vec3 p = ro + rd * t;
+        float d = sdf(p);
+        if(d < 0.001) break; // Hit
         t += d;
-        if(t > 20.0) break;
+        if(t > 100.0) break; // Miss
     }
-
-    // Shading (simple for demonstration)
-    vec3 p = rayOrigin + t * rayDirection;
-    vec3 normal = normalize(vec3(
-        sceneSDF(p + vec3(0.001, 0, 0)) - sceneSDF(p - vec3(0.001, 0, 0)),
-        sceneSDF(p + vec3(0, 0.001, 0)) - sceneSDF(p - vec3(0, 0.001, 0)),
-        sceneSDF(p + vec3(0, 0, 0.001)) - sceneSDF(p - vec3(0, 0, 0.001))
-    ));
-    vec3 color = normal * 0.5 + 0.5;
-
+    
+    vec3 color = (t < 100.0) ? vec3(1.0) : vec3(0.0);
     gl_FragColor = vec4(color, 1.0);
-    // gl_FragColor = vec4(ndc, 0.0, 1.0);
 }
 `
