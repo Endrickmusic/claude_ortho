@@ -44,8 +44,8 @@ export default function RaymarchingScene() {
   return (
     <mesh
       ref={meshRef}
-      rotation={[Math.PI / 4, Math.PI / 8, Math.PI / 2]}
-      position={[0.1, 0, 0]}
+      // rotation={[Math.PI / 4, Math.PI / 8, Math.PI / 2]}
+      position={[0, 0, 0]}
     >
       <boxGeometry args={[3, 3, 3]} />
       <shaderMaterial
